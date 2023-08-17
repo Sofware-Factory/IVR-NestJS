@@ -4,12 +4,12 @@ import * as base64 from 'base64-js';
 
 @Injectable()
 export class TcpClientService {
-  private responseId = ''; // Valor de ResponseID
+  private responseId = '';
 
   async sendMessage(
     message: string,
-    includeResponseId = true,
-  ): Promise<{ response: string; newResponseId: string }> {
+    includeResponseId: boolean,
+  ): Promise<string> {
     const ip =
       'ghost-main-static-cb9b8d8c4905430683721b19adeba6cc.ghostapi.app';
     const port = 60013;
@@ -35,17 +35,17 @@ export class TcpClientService {
       client.on('data', (data) => {
         const response = data.toString('utf-8');
 
+        if (response.includes('ResponseID=')) {
+          this.responseId = response.split('ResponseID=')[1].trim();
+        }
+
         const decodedResponse = Buffer.from(response, 'base64').toString(
           'utf-8',
         );
         console.log('Respuesta decodificada:', decodedResponse);
 
-        if (decodedResponse.includes('ResponseID=')) {
-          this.responseId = decodedResponse.split('ResponseID=')[1].trim();
-        }
-
         client.end();
-        resolve({ response: decodedResponse, newResponseId: this.responseId });
+        resolve(decodedResponse);
       });
 
       client.on('timeout', () => {
@@ -58,5 +58,9 @@ export class TcpClientService {
         reject(err);
       });
     });
+  }
+
+  getResponseId(): string {
+    return this.responseId;
   }
 }
